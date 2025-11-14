@@ -59,7 +59,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useJobStore } from '../stores/jobStore'
+import { useJobStore } from '../../../../stores/jobStore'
 
 interface Job {
   id: string
@@ -71,7 +71,7 @@ interface Job {
   execution_time?: number
 }
 
-defineProps<{ job: Job }>()
+
 
 const jobStore = useJobStore()
 

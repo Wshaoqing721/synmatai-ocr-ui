@@ -36,10 +36,10 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue'
-import { useConversationStore } from '../stores/conversationStore'
-import { useJobStore } from '../stores/jobStore'
+import { useConversationStore } from '@/stores/conversationStore'
+import { useJobStore } from '@/stores/jobStore'
 import MessageBubble from './MessageBubble.vue'
-import api from '../services/api'
+import api from '@/api/modules/sa'
 
 const conversationStore = useConversationStore()
 const jobStore = useJobStore()

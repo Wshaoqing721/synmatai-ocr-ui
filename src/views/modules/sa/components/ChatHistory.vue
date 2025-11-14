@@ -43,10 +43,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useConversationStore } from '../stores/conversationStore'
+import { useConversationStore } from '@/stores/conversationStore'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import api from '../services/api'
+import api from '@/api/modules/sa'
 
 const conversationStore = useConversationStore()
 const searchQuery = ref('')

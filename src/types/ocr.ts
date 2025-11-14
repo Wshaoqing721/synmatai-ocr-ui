@@ -23,6 +23,8 @@ export interface OCRTask {
     message: string
     details?: string
   }
+  // 本地预览地址（仅用于前端展示原始图片/文档封面）
+  preview_url?: string
 }
 
 // 公式数据

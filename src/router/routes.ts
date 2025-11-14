@@ -26,6 +26,26 @@ export const routes: RouteRecordRaw[] = [
           requiresAuth: true
         }
       },
+      {
+        path: 'ocr/results',
+        name: 'OcrResultsDirect',
+        component: () => import('@/views/modules/ocr/pages/Results.vue'),
+        meta: {
+          title: 'OCR 结果',
+          icon: 'ocr',
+          requiresAuth: true
+        }
+      },   
+      {
+        path: 'sa',
+        name: 'super-aagent',
+        component: () => import('@/views/modules/sa/index.vue'),
+        meta: {
+          title: 'Super Agent',
+          icon: 'sa',
+          requiresAuth: true
+        }
+      },
     ]
   },
   {

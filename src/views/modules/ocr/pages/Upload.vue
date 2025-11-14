@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { ocrApi } from '@/api/modules/ocr'
 import FileUploader from '../components/FileUploader.vue'
 import type { OCRTask, OCROptions } from '@/types/ocr'
@@ -13,6 +13,7 @@ const selectedFile = ref<File | null>(null)
 const fileType = ref<'photo' | 'pdf'>('photo')
 const selectedLanguages = ref<string[]>(['zh', 'en'])
 const error = ref('')
+const previewUrl = ref<string | null>(null)
 
 // OCR 处理选项
 const ocrOptions = ref<OCROptions>({
@@ -61,8 +62,15 @@ const handleFileSelected = (file: File) => {
   // 自动检测文件类型
   if (file.type.startsWith('image/')) {
     fileType.value = 'photo'
+    // 生成本地预览地址
+    if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+    previewUrl.value = URL.createObjectURL(file)
   } else if (file.type === 'application/pdf') {
     fileType.value = 'pdf'
+    if (previewUrl.value) {
+      URL.revokeObjectURL(previewUrl.value)
+      previewUrl.value = null
+    }
   }
 }
 
@@ -98,7 +106,8 @@ const handleSubmit = async () => {
       file_size: selectedFile.value.size,
       languages: selectedLanguages.value,
       created_at: response.created_at,
-      progress: 0
+      progress: 0,
+      preview_url: previewUrl.value || undefined
     }
 
     emit('complete', task)
@@ -109,6 +118,12 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+onUnmounted(() => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
+  }
+})
 </script>
 
 <template>
