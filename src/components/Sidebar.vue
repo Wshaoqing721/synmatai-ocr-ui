@@ -26,15 +26,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <aside :class="[collapsed ? 'w-16' : 'w-64', 'bg-gray-900 text-white h-screen overflow-y-auto transition-all duration-200']">
-    <div class="p-4 border-b border-gray-800 flex items-center justify-between">
-      <h1 class="text-2xl font-bold" v-show="!collapsed">Admin</h1>
+  <aside :class="[collapsed ? 'w-16' : 'w-64', 'bg-white text-gray-900 h-screen overflow-y-auto border-r border-gray-200 transition-all duration-200']">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-blue-700" v-show="!collapsed">Admin</h1>
       <button
-        class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-800"
+        class="w-8 h-8 flex items-center justify-center rounded hover:bg-blue-50"
         @click="collapsed = !collapsed"
         :title="collapsed ? '展开' : '收起'"
       >
-        <span>{{ collapsed ? '»' : '«' }}</span>
+        <span class="text-lg text-blue-700">{{ collapsed ? '»' : '«' }}</span>
       </button>
     </div>
 
@@ -46,8 +46,8 @@ onMounted(() => {
             :class="[
               'w-full text-left px-4 py-2 rounded transition-colors flex items-center',
               isActive(item.path)
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-800'
+                ? 'bg-blue-100 text-blue-700 font-semibold'
+                : 'text-gray-700 hover:bg-blue-50'
             ]"
             :title="collapsed ? item.title : ''"
           >
@@ -62,8 +62,8 @@ onMounted(() => {
                 :class="[
                   'w-full text-left px-4 py-2 text-sm rounded transition-colors',
                   isActive(child.path)
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-400 hover:bg-gray-800'
+                    ? 'bg-blue-50 text-blue-600 font-semibold'
+                    : 'text-gray-500 hover:bg-blue-50'
                 ]"
               >
                 {{ child.title }}

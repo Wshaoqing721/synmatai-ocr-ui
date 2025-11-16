@@ -5,9 +5,9 @@ import ProcessProgress from '../components/ProcessProgress.vue'
 import type { OCRTask } from '@/types/ocr'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import renderMathInElement from 'katex/contrib/auto-render'
-import 'katex/contrib/mhchem'
 import 'katex/dist/katex.min.css'
+import { normalizeLatex, hasMathDelimiters } from '@/utils/latex'
+import { renderMathInContainer } from '@/utils/math'
 import { useRoute } from 'vue-router'
 
 const props = defineProps<{
@@ -52,6 +52,7 @@ const escapeHtml = (str: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
+
 // 当后端 markdown 为空时，从 json 直接构造 HTML（不走 Markdown 解析，保证表格原生渲染）
 const buildHtmlFromJson = (j: any): string => {
   const parts: string[] = []
@@ -73,7 +74,7 @@ const buildHtmlFromJson = (j: any): string => {
           parts.push(`<div class="my-3 overflow-x-auto">${content}</div>`) 
         } else if (label.includes('formula') || label.toLowerCase().includes('chem')) {
           // 直接保留 $...$ 或 $$...$$，交给 KaTeX auto-render 渲染
-          parts.push(`<div class=\"my-2 math-block\">${content}</div>`) 
+          parts.push(`<div class="my-2 math-block">${normalizeLatex(content)}</div>`) 
         } else {
           const text = content.trim()
           if (text) {
@@ -88,9 +89,10 @@ const buildHtmlFromJson = (j: any): string => {
 
 const markdownHtml = computed(() => {
   if (!completedData.value) return ''
-  const md = (completedData.value.markdown || '').trim()
-  if (md) {
-    const html = marked.parse(md) as string
+  const mdRaw = (completedData.value.markdown || '').trim()
+  if (mdRaw) {
+    const mdToParse = hasMathDelimiters(mdRaw) ? normalizeLatex(mdRaw) : mdRaw
+    const html = marked.parse(mdToParse) as string
     return DOMPurify.sanitize(html, {
       ADD_TAGS: ['table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th'],
       ADD_ATTR: ['style', 'border', 'colspan', 'rowspan', 'align', 'cellpadding', 'cellspacing']
@@ -109,15 +111,7 @@ const mdContainer = ref<HTMLElement | null>(null)
 const renderMath = () => {
   if (!mdContainer.value) return
   try {
-    renderMathInElement(mdContainer.value, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '$', right: '$', display: false },
-        { left: '\\(', right: '\\)', display: false },
-        { left: '\\[', right: '\\]', display: true }
-      ],
-      throwOnError: false
-    })
+    renderMathInContainer(mdContainer.value)
   } catch (e) {
     // 忽略 KaTeX 渲染错误，避免影响整体展示
   }
@@ -130,6 +124,7 @@ watch(markdownHtml, async () => {
 })
 
 // 轮询查询处理结果
+const isOCRResult = (x: any) => x && typeof x === 'object' && 'results' in x && 'source' in x
 const pollResults = async () => {
   if (!currentTask.value) return
   try {
@@ -164,6 +159,18 @@ const pollResults = async () => {
         if (pollingInterval.value) clearInterval(pollingInterval.value)
         showProcessing.value = false
       }
+    } else if (isOCRResult(data)) {
+      // 后端直接返回最终 OCRResult（无 status 字段）
+      currentTask.value.progress = 100
+      currentTask.value.status = 'completed'
+      addLog('处理完成！', 'success')
+      completedData.value = {
+        json: data as any,
+        markdown: '',
+        meta: undefined
+      }
+      showProcessing.value = false
+      if (pollingInterval.value) clearInterval(pollingInterval.value)
     }
   } catch (err) {
     error.value = `查询失败：${err instanceof Error ? err.message : '未知错误'}`

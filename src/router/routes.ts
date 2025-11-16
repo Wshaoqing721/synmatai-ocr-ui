@@ -12,6 +12,7 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Dashboard.vue'),
         meta: {
           title: '仪表板',
+          slogan: '欢迎来到管理后台，探索强大的 OCR 识别和智能助手功能。',
           icon: 'dashboard',
           requiresAuth: true
         }
@@ -21,7 +22,10 @@ export const routes: RouteRecordRaw[] = [
         name: 'Ocr',
         component: () => import('@/views/modules/ocr/Index.vue'),
         meta: {
-          title: 'OCR',
+          title: 'OCR 识别',
+          slogan: '智能图片识别，提取文字、公式、化学式和表格。',
+          description: '上传图片，一键识别文字、公式、化学式和表格',
+          buttonText: '开始识别',
           icon: 'ocr',
           requiresAuth: true
         }
@@ -42,6 +46,9 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/views/modules/sa/index.vue'),
         meta: {
           title: 'Super Agent',
+          slogan: '智能对话助手，为您提供专业的问答服务。',
+          description: '与 AI 助手对话，获取专业解答',
+          buttonText: '开始对话',
           icon: 'sa',
           requiresAuth: true
         }

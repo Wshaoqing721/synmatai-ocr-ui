@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="flex h-full bg-gray-50" style="min-height:0;">
     <!-- 左侧：图片上传和预览 -->
-    <div class="w-1/2 flex flex-col p-6 border-r border-gray-200 bg-white">
+  <div class="w-1/2 flex flex-col p-6 border-r border-gray-200 bg-white h-full min-h-0">
       <h2 class="text-lg font-bold mb-4">📤 上传图片</h2>
       
       <!-- 上传区域 -->
@@ -61,7 +61,7 @@
     </div>
 
     <!-- 右侧：OCR结果展示 -->
-    <div class="w-1/2 flex flex-col p-6 bg-white">
+  <div class="w-1/2 flex flex-col p-6 bg-white h-full min-h-0">
       <h2 class="text-lg font-bold mb-4">🧾 识别结果</h2>
 
       <!-- 处理中的状态（仅显示动画与提示，不展示进度） -->
@@ -124,32 +124,13 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import renderMathInElement from 'katex/contrib/auto-render'
-import 'katex/contrib/mhchem'
 import 'katex/dist/katex.min.css'
+import { normalizeLatex, hasMathDelimiters } from '@/utils/latex'
+import { renderMathInContainer } from '@/utils/math'
+import type { OCRTask, OCROptions } from '@/types/ocr'
 import { ocrApi } from '@/api/modules/ocr'
 
-// 类型定义
-interface OCRTask {
-  task_id: string
-  status: string
-  filename: string
-  file_type: string
-  file_size: number
-  languages: string[]
-  created_at: string
-  progress: number
-  current_step?: string
-  preview_url?: string
-}
-
-interface OCROptions {
-  extract_formulas: boolean
-  extract_chemistry: boolean
-  extract_tables: boolean
-  preserve_layout: boolean
-  formula_format: string[]
-}
+// 使用全局类型定义，避免重复定义
 
 // 状态
 const loading = ref(false)
@@ -161,6 +142,7 @@ const completedData = ref<{ json: any; markdown: string } | null>(null)
 const viewMode = ref<'markdown' | 'json'>('markdown')
 const pollingInterval = ref<number | null>(null)
 const mdContainer = ref<HTMLElement | null>(null)
+
 
 const ocrOptions = ref<OCROptions>({
   extract_formulas: true,
@@ -261,6 +243,7 @@ const handleSubmit = async () => {
 }
 
 // 轮询查询结果（对接后端 API）
+const isOCRResult = (x: any) => x && typeof x === 'object' && 'results' in x && 'source' in x
 const pollResults = async () => {
   if (!currentTask.value) return
 
@@ -288,6 +271,15 @@ const pollResults = async () => {
         const errMsg = (data as any)?.error?.message || '处理失败'
         throw new Error(errMsg)
       }
+    } else if (isOCRResult(data)) {
+      // 后端直接返回最终 OCRResult（无 status 字段）
+      completedData.value = {
+        json: data as any,
+        markdown: ''
+      }
+      currentTask.value.status = 'completed'
+      loading.value = false
+      if (pollingInterval.value) clearInterval(pollingInterval.value)
     }
   } catch (err) {
     error.value = `查询失败：${err instanceof Error ? err.message : '未知错误'}`
@@ -301,7 +293,8 @@ const markdownHtml = computed(() => {
   if (!completedData.value) return ''
   const md = (completedData.value.markdown || '').trim()
   if (md) {
-    const html = marked.parse(md) as string
+    const mdToParse = hasMathDelimiters(md) ? normalizeLatex(md) : md
+    const html = marked.parse(mdToParse) as string
     return DOMPurify.sanitize(html, {
       ADD_TAGS: ['table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th'],
       ADD_ATTR: ['style', 'border', 'colspan', 'rowspan', 'align', 'cellpadding', 'cellspacing']
@@ -314,15 +307,7 @@ const markdownHtml = computed(() => {
 const renderMath = () => {
   if (!mdContainer.value) return
   try {
-    renderMathInElement(mdContainer.value, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '$', right: '$', display: false },
-        { left: '\\(', right: '\\)', display: false },
-        { left: '\\[', right: '\\]', display: true }
-      ],
-      throwOnError: false
-    })
+    renderMathInContainer(mdContainer.value)
   } catch (e) {
     // 忽略错误
   }
@@ -377,5 +362,11 @@ onUnmounted(() => {
   border-radius: 0.375rem;
   padding: 0.5rem 0.75rem;
   overflow: auto;
+}
+</style>
+
+<style>
+body {
+  overflow: hidden;
 }
 </style>
