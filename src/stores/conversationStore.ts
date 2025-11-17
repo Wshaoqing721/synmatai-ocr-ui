@@ -37,7 +37,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
   const loadConversations = async () => {
     try {
-      const response = await api.get('/chat/conversations', {
+      const response = await api.get('/nexus/chat/conversations', {
         params: { page: 1, per_page: 50 }
       })
       if (response.data.status === 'success') {
@@ -53,7 +53,7 @@ export const useConversationStore = defineStore('conversation', () => {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      const response = await api.get(`/chat/history/${conversationId}`, {
+      const response = await api.get(`/nexus/chat/history/${conversationId}`, {
         params: { limit: 100, offset: 0 }
       })
       if (response.data.status === 'success') {

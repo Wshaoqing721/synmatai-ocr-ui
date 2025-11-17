@@ -55,7 +55,7 @@ const sendMessage = async () => {
   loading.value = true
 
   try {
-    const response = await api.post('/chat/send', {
+    const response = await api.post('/nexus/chat/send', {
       message,
       conversation_id: conversationStore.currentConversationId
     })

@@ -79,7 +79,7 @@ const selectConversation = (id: string) => {
 
 const createNewConversation = async () => {
   try {
-    const response = await api.post('/chat/conversations', {
+    const response = await api.post('/nexus/chat/conversations', {
       title: `对话 ${new Date().toLocaleString()}`
     })
     if (response.data.status === 'success') {
