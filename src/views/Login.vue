@@ -13,14 +13,47 @@ const router = useRouter()
 
 const handleLogin = async () => {
   loading.value = true
+  error.value = ''
   try {
-    // 这里可调用真实登录接口，示例直接设置 token
-    if (username.value && password.value) {
-      auth.login('mock-token', ['dashboard:view', 'users:manage'])
-      router.push('/dashboard')
-    } else {
+    if (!username.value || !password.value) {
       error.value = '请输入用户名和密码'
+      // 仍然继续跳转，不阻塞其他功能
+      router.push('/dashboard')
+      return
     }
+
+    const resp = await fetch('http://218.17.185.36:20244/post-token/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username: username.value, password: password.value, rememberMe: false })
+    })
+
+    if (!resp.ok) {
+      // 登录请求失败，记录错误但仍然跳转
+      error.value = `登录接口返回 ${resp.status}`
+      router.push('/dashboard')
+      return
+    }
+
+    const data = await resp.json()
+    // 期望返回 { access: '...', refresh: '...' }
+    const token = (data && (data.access || data.token || data.access_token)) || ''
+    if (token) {
+      // 存储 token 到 auth store
+      auth.login(token, [])
+    } else {
+      // 没有拿到 token，但仍继续前往 dashboard
+      error.value = '未从接口获取到 token，已以游客身份继续'
+    }
+
+    router.push('/dashboard')
+  } catch (e) {
+    // 网络或解析错误，不阻塞，仍跳转
+    // @ts-ignore
+    error.value = e?.message || String(e)
+    router.push('/dashboard')
   } finally {
     loading.value = false
   }
