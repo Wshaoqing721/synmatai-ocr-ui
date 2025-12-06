@@ -40,9 +40,11 @@ export const useConversationStore = defineStore('conversation', () => {
       const response = await api.get('/nexus/chat/conversations', {
         params: { page: 1, per_page: 50 }
       })
-      if (response.data.status === 'success') {
-        conversations.value = response.data.conversations
-        if (conversations.value.length > 0) {
+      const data = response.data || {}
+      const list = data.conversations || data.data?.conversations || []
+      if (Array.isArray(list)) {
+        conversations.value = list
+        if (!currentConversationId.value && conversations.value.length > 0) {
           currentConversationId.value = conversations.value[0].id
         }
       }
@@ -56,8 +58,15 @@ export const useConversationStore = defineStore('conversation', () => {
       const response = await api.get(`/nexus/chat/history/${conversationId}`, {
         params: { limit: 100, offset: 0 }
       })
-      if (response.data.status === 'success') {
-        currentMessages.value = response.data.messages.reverse()
+      const data = response.data || {}
+      const msgs = data.messages || data.data?.messages || []
+      if (Array.isArray(msgs)) {
+        // Sort messages chronologically (oldest first) based on created_at.
+        currentMessages.value = [...msgs].sort((a: any, b: any) => {
+          const ta = new Date(a.created_at || 0).getTime()
+          const tb = new Date(b.created_at || 0).getTime()
+          return ta - tb
+        })
       }
     } catch (error) {
       console.error('加载消息失败:', error)

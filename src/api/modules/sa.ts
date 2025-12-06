@@ -4,7 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL_SA || 'http://127.0.0.1:20297'
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  // Increase SA API timeout to 3 minutes to support long-running operations/streams
+  timeout: 180000,
   headers: {
     'Content-Type': 'application/json'
   }
