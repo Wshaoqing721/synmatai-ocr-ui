@@ -18,10 +18,18 @@
         rows="3"
         :disabled="loading"
       />
-      <div class="flex justify-between">
-        <span class="text-xs text-gray-500">
-          {{ inputMessage.length }} / 5000
-        </span>
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-gray-500">接口：</label>
+            <select v-model="apiVersion" class="border rounded px-2 py-1 text-xs">
+              <option value="v1">默认 v1</option>
+              <option value="v2">ask v2 (/nexus/chat/ask/)</option>
+              <option value="v3">enhancea v3 (/nexuschat/enhancea-ask/)</option>
+            </select>
+          </div>
+          <span class="text-xs text-gray-500 hidden sm:inline">{{ inputMessage.length }} / 5000</span>
+        </div>
         <button
           @click="sendMessage"
           :disabled="loading || !inputMessage.trim()"
@@ -61,6 +69,8 @@ const jobStore = useJobStore()
 const inputMessage = ref('')
 const loading = ref(false)
 const messagesEnd = ref<HTMLElement>()
+const apiVersion = ref<'v1' | 'v2' | 'v3'>('v1')
+const currentStreamMessage = ref<any>(null)
 
 // WebSocket（聊天、任务、用户级任务） & SSE（LLM流）相关
 const tasksWsRef = ref<WebSocket | null>(null)
@@ -407,6 +417,19 @@ const sendMessage = async () => {
   })
   await nextTick()
   messagesEnd.value?.scrollIntoView({ behavior: 'smooth' })
+  // 1.5) 创建 AI 占位消息（所有版本通用）
+  const assistantId = `stream-${Date.now()}`
+  currentStreamMessage.value = {
+    id: assistantId,
+    conversation_id: conversationStore.currentConversationId,
+    role: 'assistant',
+    content: '',
+    type: 'thinking',
+    created_at: new Date().toISOString()
+  }
+  conversationStore.addMessage(currentStreamMessage.value)
+  await nextTick()
+  messagesEnd.value?.scrollIntoView({ behavior: 'smooth' })
 
   // 2) 立即开始监听会话相关 WS（任务 + 聊天）
   const convId = conversationStore.currentConversationId
@@ -421,45 +444,141 @@ const sendMessage = async () => {
   loading.value = true
 
   try {
-    const response = await api.post('/nexus/chat/send', {
-      message,
-      conversation_id: conversationStore.currentConversationId
-    })
-
-    if (response.data.status === 'success') {
-      const data = response.data
-
-      // 如果后端立刻给了初始 agent_response，可作为流式的起始内容（若尚无流）
-      if (data.agent_response && !streamingMessageId.value) {
-        const newId = `stream-${Date.now()}`
-        streamingMessageId.value = newId
-        streamingBuffer.value = data.agent_response
-        conversationStore.addMessage({
-          id: newId,
-          conversation_id: conversationStore.currentConversationId,
-          role: 'assistant',
-          content: data.agent_response,
-          type: 'thinking',
-          created_at: new Date().toISOString()
-        })
-      }
-
-      // 添加Jobs到store + 记录第一个任务ID用于 SSE 查询参数
-      const jobsArr = data.jobs || []
-      if (Array.isArray(jobsArr)) {
-        for (const job of jobsArr) jobStore.addJob(job)
-        if (jobsArr[0]?.id) lastTaskIdRef.value = jobsArr[0].id
-      }
-
-      // 打开 SSE 流（使用当前会话和首个任务ID）
-      if (lastConversationIdRef.value) {
-        openSseStream(lastConversationIdRef.value, lastTaskIdRef.value)
-      }
-
-      // 滚动到底部
-      await nextTick()
-      messagesEnd.value?.scrollIntoView({ behavior: 'smooth' })
+    // Build request URL using configured SA API base if present
+    let baseOrigin = ''
+    let basePath = ''
+    const envUrl = (import.meta as any).env?.VITE_API_URL_SA as string | undefined
+    if (envUrl) {
+      try {
+        const u = new URL(envUrl)
+        baseOrigin = u.origin
+        basePath = u.pathname.endsWith('/api') ? u.pathname.slice(0, -4) : u.pathname
+        basePath = basePath.replace(/\/$/, '')
+      } catch {}
     }
+    if (!baseOrigin) baseOrigin = location.origin
+    const prefix = basePath ? `${basePath}` : ''
+
+    // mark streaming flag
+    if (currentStreamMessage.value) currentStreamMessage.value.isStreaming = true
+
+    // v1: keep original axios-based (non-stream) call using `api`
+    if (apiVersion.value === 'v1') {
+      try {
+        const resp = await api.post('/nexus/chat/ask/', {
+          conversation_id: conversationStore.currentConversationId,
+          message: message,
+          files: []
+        })
+        const data = resp?.data
+        // try several common shapes
+        if (data) {
+          if (typeof data === 'string') {
+            currentStreamMessage.value.content += data
+          } else if (data.message) {
+            currentStreamMessage.value.content += data.message
+          } else if (data.content) {
+            currentStreamMessage.value.content += data.content
+          } else if (data.choices && Array.isArray(data.choices) && data.choices[0]) {
+            const c = data.choices[0]
+            currentStreamMessage.value.content += c.text || c.message || JSON.stringify(c)
+          } else {
+            currentStreamMessage.value.content += JSON.stringify(data)
+          }
+
+          if (data.jobs && Array.isArray(data.jobs)) {
+            for (const j of data.jobs) { try { jobStore.addJob(j) } catch (e) { console.warn('addJob failed', e) } }
+          }
+        }
+        if (currentStreamMessage.value) currentStreamMessage.value.type = 'answer'
+      } catch (e) {
+        console.error('v1 请求失败', e)
+        addNotice('发送失败', 'v1 接口请求失败', 'error')
+        if (currentStreamMessage.value) currentStreamMessage.value.content = `[错误] 请求失败`
+      }
+    } else {
+      // v2/v3: streaming NDJSON endpoints
+      const endpoint = apiVersion.value === 'v3' ? '/nexuschat/enhancea-ask/' : '/nexus/chat/ask/'
+      const url = `${baseOrigin}${prefix}${endpoint}`
+
+      const token = localStorage.getItem('token')
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          conversation_id: conversationStore.currentConversationId,
+          message: message,
+          files: []
+        })
+      })
+
+      if (!resp.ok || !resp.body) {
+        const txt = await resp.text().catch(() => '')
+        addNotice('发送失败', `接口返回 ${resp.status} ${txt}`, 'error')
+        loading.value = false
+        return
+      }
+
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
+
+      const processLine = (line: string) => {
+        if (!line.trim()) return
+        let chunk: any = null
+        try { chunk = JSON.parse(line) } catch (e) { chunk = { type: 'agent_chunk', content: line } }
+
+        const t = chunk.type
+        if (t === 'start') {
+          // optional: show route badge
+        } else if (t === 'agent_chunk') {
+          if (currentStreamMessage.value) {
+            const content = chunk.content
+            if (typeof content === 'string') {
+              currentStreamMessage.value.content += content
+            } else if (content && typeof content === 'object') {
+              try { currentStreamMessage.value.content += JSON.stringify(content) } catch { currentStreamMessage.value.content += String(content) }
+            }
+          }
+        } else if (t === 'done' || t === 'completed') {
+          if (currentStreamMessage.value) currentStreamMessage.value.isStreaming = false
+        } else if (t === 'error') {
+          addNotice('流式错误', chunk.error || '未知错误', 'error')
+          if (currentStreamMessage.value) {
+            currentStreamMessage.value.content = `[错误] ${chunk.error || '未知错误'}`
+            currentStreamMessage.value.isStreaming = false
+          }
+        }
+
+        if (chunk.jobs && Array.isArray(chunk.jobs)) {
+          for (const j of chunk.jobs) {
+            try { jobStore.addJob(j) } catch (e) { console.warn('addJob failed', e) }
+          }
+        }
+      }
+
+      // Read stream
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) {
+          if (buffer.trim()) processLine(buffer)
+          break
+        }
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) processLine(line)
+      }
+
+      if (currentStreamMessage.value) currentStreamMessage.value.isStreaming = false
+    }
+
+    // scroll
+    await nextTick()
+    messagesEnd.value?.scrollIntoView({ behavior: 'smooth' })
   } catch (error) {
     console.error('发送消息失败:', error)
     addNotice('发送失败', '消息发送失败，请重试', 'error')
