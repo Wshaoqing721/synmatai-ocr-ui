@@ -1,58 +1,95 @@
 <template>
-  <div class="flex flex-col h-full relative">
-    <!-- 消息列表 -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
-      <div v-for="msg in conversationStore.currentMessages" :key="msg.id">
-        <MessageBubble :message="msg" />
-      </div>
-      <div ref="messagesEnd" />
-    </div>
-
-    <!-- 输入框 -->
-    <div class="border-t bg-white p-4 space-y-2">
-      <textarea
-        v-model="inputMessage"
-        @keydown.enter.ctrl="sendMessage"
-        placeholder="输入你的问题...（Ctrl+Enter 发送）"
-        class="w-full p-3 border rounded focus:outline-none focus:ring-2 resize-none"
-        rows="3"
-        :disabled="loading"
-      />
-      <div class="flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-2">
-            <label class="text-xs text-gray-500">接口：</label>
-            <select v-model="apiVersion" class="border rounded px-2 py-1 text-xs">
-              <option value="v1">默认 v1</option>
-              <option value="v2">ask v2 (/nexus/chat/ask/)</option>
-              <option value="v3">enhancea v3 (/nexuschat/enhancea-ask/)</option>
-            </select>
+  <div class="flex flex-col h-full relative bg-white">
+    <!-- Messages Area -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar">
+      <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <!-- Welcome State -->
+        <div v-if="conversationStore.currentMessages.length === 0" class="text-center py-20">
+          <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+            🤖
           </div>
-          <span class="text-xs text-gray-500 hidden sm:inline">{{ inputMessage.length }} / 5000</span>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">How can I help you today?</h2>
+          <p class="text-gray-500">Ask me anything about your documents or tasks.</p>
         </div>
-        <button
-          @click="sendMessage"
-          :disabled="loading || !inputMessage.trim()"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 text-sm font-semibold"
-        >
-          {{ loading ? '处理中...' : '发送' }}
-        </button>
+
+        <!-- Message List -->
+        <div v-for="msg in conversationStore.currentMessages" :key="msg.id">
+          <MessageBubble :message="msg" />
+        </div>
+        
+        <!-- Loading Indicator (if needed separately, though MessageBubble handles streaming) -->
+        <div v-if="loading && !currentStreamMessage" class="flex justify-center">
+          <span class="loading loading-dots loading-sm text-gray-400"></span>
+        </div>
+        
+        <div ref="messagesEnd" class="h-4" />
       </div>
     </div>
 
-    <!-- Toast 通知 -->
-    <div class="pointer-events-none absolute top-2 right-2 space-y-2 z-10">
-      <div
-        v-for="n in notifications"
-        :key="n.id"
-        class="pointer-events-auto bg-white border shadow rounded px-3 py-2 text-sm flex items-start gap-2 max-w-sm"
-      >
-        <span class="mt-0.5" :class="n.type === 'error' ? 'text-red-600' : 'text-blue-600'">●</span>
-        <div>
-          <div class="font-medium">{{ n.title }}</div>
-          <div class="text-gray-600 text-xs mt-0.5 whitespace-pre-wrap break-words">{{ n.message }}</div>
+    <!-- Input Area -->
+    <div class="flex-none p-4 bg-white border-t border-gray-100">
+      <div class="max-w-3xl mx-auto">
+        <div class="relative bg-white border border-gray-200 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+          <textarea
+            v-model="inputMessage"
+            @keydown.enter.ctrl="sendMessage"
+            placeholder="Message Super Agent..."
+            class="w-full p-4 pr-12 bg-transparent border-none focus:ring-0 resize-none max-h-48 min-h-[56px] text-gray-800 placeholder-gray-400"
+            rows="1"
+            style="field-sizing: content;" 
+            :disabled="loading"
+          />
+          
+          <!-- Send Button -->
+          <button
+            @click="sendMessage"
+            :disabled="loading || !inputMessage.trim()"
+            class="absolute right-2 bottom-2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Footer Controls -->
+        <div class="flex justify-between items-center mt-2 px-1">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+              <label class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Model</label>
+              <select 
+                v-model="apiVersion" 
+                class="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
+              >
+                <option value="v1">Standard (v1)</option>
+                <option value="v2">Streaming (v2)</option>
+                <option value="v3">Enhanced (v3)</option>
+              </select>
+            </div>
+          </div>
+          <span class="text-xs text-gray-400">{{ inputMessage.length }} / 5000</span>
         </div>
       </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="pointer-events-none absolute top-4 right-4 space-y-2 z-50">
+      <transition-group name="toast">
+        <div
+          v-for="n in notifications"
+          :key="n.id"
+          class="pointer-events-auto bg-white border border-gray-100 shadow-lg rounded-lg p-4 flex items-start gap-3 max-w-sm transform transition-all duration-300"
+        >
+          <div 
+            class="flex-none w-2 h-2 mt-1.5 rounded-full"
+            :class="n.type === 'error' ? 'bg-red-500' : 'bg-blue-500'"
+          ></div>
+          <div>
+            <div class="font-medium text-sm text-gray-900">{{ n.title }}</div>
+            <div class="text-gray-500 text-xs mt-1 leading-relaxed">{{ n.message }}</div>
+          </div>
+        </div>
+      </transition-group>
     </div>
   </div>
 </template>
@@ -618,3 +655,29 @@ onUnmounted(() => {
   closeSse()
 })
 </script>
+
+<style scoped>
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 20px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(20px);
+}
+</style>

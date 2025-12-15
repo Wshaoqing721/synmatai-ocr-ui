@@ -50,7 +50,8 @@ export const routes: RouteRecordRaw[] = [
           description: '与 AI 助手对话，获取专业解答',
           buttonText: '开始对话',
           icon: 'sa',
-          requiresAuth: true
+          requiresAuth: true,
+          noPadding: true
         }
       },
     ]

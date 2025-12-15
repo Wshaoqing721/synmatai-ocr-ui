@@ -1,57 +1,77 @@
 <template>
-  <div class="border rounded p-3 bg-white hover:shadow-md transition">
-    <!-- 标题和状态 -->
-    <div class="flex justify-between items-start mb-2">
-      <span class="font-semibold text-sm">{{ job.name }}</span>
-      <span :class="['text-xs px-2 py-1 rounded', statusClasses]">
+  <div class="group bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 relative overflow-hidden">
+    <!-- Status Indicator Strip -->
+    <div 
+      class="absolute left-0 top-0 bottom-0 w-1"
+      :class="statusColorClass"
+    ></div>
+
+    <!-- Header -->
+    <div class="flex justify-between items-start mb-3 pl-2">
+      <div>
+        <h3 class="font-semibold text-sm text-gray-900 line-clamp-1" :title="job.name">{{ job.name }}</h3>
+        <p class="text-xs text-gray-500 mt-0.5 font-mono">{{ job.id.slice(0, 8) }}...</p>
+      </div>
+      <span 
+        class="text-[10px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wide"
+        :class="statusBadgeClass"
+      >
         {{ statusText }}
       </span>
     </div>
 
-    <!-- 进度条 -->
-    <div v-if="job.status === 'running'" class="mb-2">
-      <div class="w-full bg-gray-300 rounded h-1.5">
+    <!-- Progress Bar -->
+    <div v-if="job.status === 'running'" class="mb-3 pl-2">
+      <div class="flex justify-between text-xs text-gray-500 mb-1">
+        <span>Progress</span>
+        <span>{{ job.progress }}%</span>
+      </div>
+      <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
         <div
-          class="bg-blue-500 h-1.5 rounded transition-all"
+          class="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
           :style="{ width: `${job.progress}%` }"
         />
       </div>
-      <p class="text-xs text-gray-600 mt-1">{{ job.progress }}%</p>
     </div>
 
-    <!-- 类型和优先级 -->
-    <div class="text-xs text-gray-600 space-y-1">
-      <p>类型: <span class="font-mono">{{ job.type }}</span></p>
-      <p>优先级: 
-        <span class="font-mono">{{ '⭐'.repeat(job.priority) }}</span>
-      </p>
-      <p v-if="job.execution_time">
-        耗时: {{ job.execution_time }}s
-      </p>
+    <!-- Metadata -->
+    <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 pl-2 mb-3">
+      <div class="flex items-center gap-1">
+        <span class="text-gray-400">Type:</span>
+        <span class="font-medium text-gray-700">{{ job.type }}</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="text-gray-400">Priority:</span>
+        <span class="text-yellow-500 text-[10px]">{{ '★'.repeat(job.priority) }}</span>
+      </div>
+      <div v-if="job.execution_time" class="col-span-2 flex items-center gap-1">
+        <span class="text-gray-400">Time:</span>
+        <span class="font-medium text-gray-700">{{ job.execution_time }}s</span>
+      </div>
     </div>
 
-    <!-- 操作按钮 -->
-    <div class="flex gap-2 mt-3">
+    <!-- Actions -->
+    <div class="flex gap-2 pl-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
       <button
         v-if="job.status === 'running'"
         @click="cancelJob"
-        class="flex-1 text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+        class="flex-1 text-xs bg-white border border-red-200 text-red-600 px-2 py-1.5 rounded hover:bg-red-50 transition-colors"
       >
-        取消
+        Cancel
       </button>
       <button
         v-if="job.status === 'failed'"
         @click="retryJob"
-        class="flex-1 text-xs bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
+        class="flex-1 text-xs bg-white border border-yellow-200 text-yellow-600 px-2 py-1.5 rounded hover:bg-yellow-50 transition-colors"
       >
-        重试
+        Retry
       </button>
       <button
         v-if="job.status === 'completed'"
         @click="viewDetails"
-        class="flex-1 text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+        class="flex-1 text-xs bg-white border border-green-200 text-green-600 px-2 py-1.5 rounded hover:bg-green-50 transition-colors"
       >
-        详情
+        Details
       </button>
     </div>
   </div>
@@ -59,7 +79,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useJobStore } from '../../../../stores/jobStore'
+import { useJobStore } from '@/stores/jobStore'
 
 interface Job {
   id: string
@@ -71,41 +91,48 @@ interface Job {
   execution_time?: number
 }
 
-
-
+const props = defineProps<{ job: Job }>()
 const jobStore = useJobStore()
 
 const statusText = computed(() => {
   const map: Record<string, string> = {
-    pending: '待处理',
-    running: '执行中',
-    completed: '已完成',
-    failed: '失败'
+    pending: 'Pending',
+    running: 'Running',
+    completed: 'Done',
+    failed: 'Failed'
   }
   return map[props.job.status] || props.job.status
 })
 
-const statusClasses = computed(() => {
+const statusColorClass = computed(() => {
   const map: Record<string, string> = {
-    pending: 'bg-gray-200 text-gray-800',
-    running: 'bg-blue-200 text-blue-800',
-    completed: 'bg-green-200 text-green-800',
-    failed: 'bg-red-200 text-red-800'
+    pending: 'bg-gray-300',
+    running: 'bg-blue-500',
+    completed: 'bg-green-500',
+    failed: 'bg-red-500'
   }
-  return map[props.job.status] || ''
+  return map[props.job.status] || 'bg-gray-300'
 })
 
-const props = defineProps<{ job: Job }>()
+const statusBadgeClass = computed(() => {
+  const map: Record<string, string> = {
+    pending: 'bg-gray-100 text-gray-600',
+    running: 'bg-blue-50 text-blue-600',
+    completed: 'bg-green-50 text-green-600',
+    failed: 'bg-red-50 text-red-600'
+  }
+  return map[props.job.status] || 'bg-gray-100 text-gray-600'
+})
 
 const cancelJob = () => {
-  console.log('取消Job:', props.job.id)
+  console.log('Cancel Job:', props.job.id)
 }
 
 const retryJob = () => {
-  console.log('重试Job:', props.job.id)
+  console.log('Retry Job:', props.job.id)
 }
 
 const viewDetails = () => {
-  console.log('查看详情:', props.job.id)
+  console.log('View Details:', props.job.id)
 }
 </script>
