@@ -12,8 +12,28 @@ onMounted(() => menuStore.generateMenu())
 
 // 获取所有子路由（dashboard、ocr、sa等）
 const childRoutes = computed(() => {
-  const mainRoute = router.getRoutes().find(r => r.path === '/')
-  return mainRoute?.children?.filter(r => !(r.meta as any)?.hideInMenu) || []
+  const allRoutes = router.getRoutes()
+  const mainRoute = allRoutes.find(r => r.path === '/')
+  const res: any[] = []
+
+  if (mainRoute?.children) {
+    mainRoute.children.forEach(route => {
+      if ((route.meta as any)?.hideInMenu) return
+
+      if (route.children && route.children.length > 0) {
+        route.children.forEach(child => {
+          if (!(child.meta as any)?.hideInMenu) {
+            const fullChild = allRoutes.find(r => r.name === child.name)
+            if (fullChild) res.push(fullChild)
+          }
+        })
+      } else {
+        const fullRoute = allRoutes.find(r => r.name === route.name)
+        if (fullRoute) res.push(fullRoute)
+      }
+    })
+  }
+  return res
 })
 
 const dashboardRoute = computed(() => childRoutes.value.find(r => r.name === 'Dashboard'))
@@ -36,33 +56,41 @@ const handleCardClick = (path: string) => {
     </div>
 
     <!-- Features Section -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div
+    <el-row :gutter="24">
+      <el-col
         v-for="item in childRoutes"
         :key="item.path"
-        class="cursor-pointer bg-white rounded-lg shadow-md hover:shadow-xl transition-all transform hover:scale-105 p-6 flex flex-col items-center border border-gray-100 hover:border-blue-400"
-        @click="handleCardClick(item.path)"
+        :xs="24"
+        :sm="12"
+        :lg="6"
+        class="mb-6"
       >
-        <!-- Icon -->
-        <div class="text-4xl mb-4 text-center">🔹</div>
-        
-        <!-- Title -->
-        <h2 class="text-lg font-semibold text-gray-800 text-center">
-          {{ item.meta?.title || item.name }}
-        </h2>
-        
-        <!-- Description/Slogan -->
-        <p class="text-gray-500 mt-3 text-center text-sm">
-          {{ item.meta?.slogan || item.meta?.description || '点击进入' }}
-        </p>
-        
-        <!-- Button -->
-        <div class="mt-6 text-center w-full">
-          <span class="inline-block px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
-            {{ item.meta?.buttonText || '进入' }}
-          </span>
-        </div>
-      </div>
-    </div>
+        <el-card 
+          shadow="hover" 
+          class="h-full cursor-pointer transition-all transform hover:scale-105 text-center flex flex-col items-center"
+          @click="handleCardClick(item.path)"
+        >
+          <!-- Icon -->
+          <div class="text-4xl mb-4">🔹</div>
+          
+          <!-- Title -->
+          <h2 class="text-lg font-semibold text-gray-800">
+            {{ item.meta?.title || item.name }}
+          </h2>
+          
+          <!-- Description/Slogan -->
+          <p class="text-gray-500 mt-3 text-sm">
+            {{ item.meta?.slogan || item.meta?.description || '点击进入' }}
+          </p>
+          
+          <!-- Button -->
+          <div class="mt-6 w-full">
+            <el-button type="primary" round>
+              {{ item.meta?.buttonText || '进入' }}
+            </el-button>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>

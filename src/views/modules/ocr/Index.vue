@@ -1,121 +1,99 @@
 <template>
   <div class="flex h-full bg-gray-50" style="min-height:0;">
     <!-- 左侧：图片上传和预览 -->
-  <div class="w-1/2 flex flex-col p-6 border-r border-gray-200 bg-white h-full min-h-0">
+    <div class="w-1/2 flex flex-col p-6 border-r border-gray-200 bg-white h-full min-h-0">
       <h2 class="text-lg font-bold mb-4">📤 上传图片</h2>
       
       <!-- 上传区域 -->
-      <div
+      <el-upload
         v-if="!selectedFile"
-        @drop.prevent="handleFileDrop"
-        @dragover.prevent
-        class="relative flex-1 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-lg bg-blue-50 cursor-pointer transition hover:border-blue-600 focus-within:ring-2 focus-within:ring-blue-400"
+        class="flex-1 flex flex-col justify-center"
+        drag
+        action="#"
+        :auto-upload="false"
+        :show-file-list="false"
+        accept=".jpg,.jpeg,.png"
+        :on-change="handleFileChange"
       >
-        <div class="text-center">
-          <div class="text-4xl mb-2">📁</div>
-          <p class="text-gray-700 font-medium">拖拽或点击上传图片</p>
-          <p class="text-sm text-gray-500 mt-1">支持 JPG、PNG 格式</p>
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png"
-            @change="handleFileSelected"
-            class="absolute inset-0 opacity-0 cursor-pointer"
-          />
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">
+          拖拽或点击上传图片
+          <div class="text-xs text-gray-500 mt-1">支持 JPG、PNG 格式</div>
         </div>
-      </div>
+      </el-upload>
 
       <!-- 已选择图片预览 -->
-      <div v-else class="flex-1 flex flex-col">
-        <div class="flex-1 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
-          <img :src="previewUrl || undefined" alt="预览图片" class="max-h-full max-w-full object-contain" />
+      <div v-else class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden relative">
+          <el-image 
+            :src="previewUrl || undefined" 
+            fit="contain" 
+            class="w-full h-full"
+            :preview-src-list="previewUrl ? [previewUrl] : []"
+          />
+          <div class="absolute top-2 right-2">
+             <el-button type="danger" circle size="small" @click="clearFile">
+               <el-icon><Close /></el-icon>
+             </el-button>
+          </div>
         </div>
-        <div class="mt-3 p-3 bg-blue-50 rounded-lg text-sm">
-          <p class="text-gray-700"><strong>{{ selectedFile.name }}</strong></p>
-          <p class="text-gray-600 text-xs mt-1">大小: {{ formatFileSize(selectedFile.size) }}</p>
+        <div class="mt-3 p-3 bg-blue-50 rounded-lg text-sm flex justify-between items-center">
+          <div>
+            <p class="text-gray-700 font-bold">{{ selectedFile.name }}</p>
+            <p class="text-gray-600 text-xs mt-1">大小: {{ formatFileSize(selectedFile.size) }}</p>
+          </div>
         </div>
       </div>
 
       <!-- 操作按钮 -->
       <div class="mt-4 flex gap-2">
-        <button
-          v-if="selectedFile"
-          @click="clearFile"
-          class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition text-sm font-medium"
-        >
-          清除
-        </button>
-        <button
+        <el-button
           v-if="selectedFile"
           @click="handleSubmit"
-          :disabled="loading"
-          class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition text-sm font-medium"
+          :loading="loading"
+          type="primary"
+          class="w-full"
         >
           {{ loading ? '处理中...' : '开始识别' }}
-        </button>
+        </el-button>
       </div>
 
       <!-- 错误提示 -->
-      <div v-if="error" class="mt-3 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-        {{ error }}
-      </div>
+      <el-alert v-if="error" :title="error" type="error" show-icon class="mt-3" :closable="false" />
     </div>
 
     <!-- 右侧：OCR结果展示 -->
-  <div class="w-1/2 flex flex-col p-6 bg-white h-full min-h-0">
+    <div class="w-1/2 flex flex-col p-6 bg-white h-full min-h-0" v-loading="loading && !completedData" element-loading-text="处理中...">
       <h2 class="text-lg font-bold mb-4">🧾 识别结果</h2>
 
-      <!-- 处理中的状态（仅显示动画与提示，不展示进度） -->
-      <div v-if="loading && !completedData" class="flex-1 flex flex-col items-center justify-center">
-        <div class="animate-spin mb-4">
-          <svg class="w-12 h-12 text-blue-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
-        <p class="text-gray-600 font-medium">处理中...</p>
-      </div>
-
       <!-- 结果展示 -->
-      <div v-else-if="completedData" class="flex-1 flex flex-col overflow-hidden">
-        <div class="flex gap-2 mb-3">
-          <button
-            @click="viewMode = 'markdown'"
-            :class="['px-3 py-1.5 text-sm font-medium rounded transition', viewMode === 'markdown' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700']"
-          >
-            Markdown
-          </button>
-          <button
-            @click="viewMode = 'json'"
-            :class="['px-3 py-1.5 text-sm font-medium rounded transition', viewMode === 'json' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700']"
-          >
-            JSON
-          </button>
-        </div>
-
-        <div v-if="viewMode === 'markdown'" class="flex-1 bg-gray-50 rounded-lg p-4 overflow-hidden">
-          <div ref="mdContainer" class="md-content text-sm leading-relaxed overflow-y-auto h-full" v-html="markdownHtml"></div>
-        </div>
-        <div v-else class="flex-1 bg-gray-50 rounded-lg p-4 overflow-hidden">
-          <pre class="text-xs leading-relaxed overflow-y-auto h-full whitespace-pre-wrap break-words">{{ JSON.stringify(completedData.json, null, 2) }}</pre>
-        </div>
+      <div v-if="completedData" class="flex-1 flex flex-col overflow-hidden">
+        <el-tabs v-model="viewMode" class="flex-1 flex flex-col h-full">
+          <el-tab-pane label="Markdown" name="markdown" class="h-full">
+             <el-scrollbar class="h-full bg-gray-50 rounded-lg p-4">
+                <div ref="mdContainer" class="md-content text-sm leading-relaxed" v-html="markdownHtml"></div>
+             </el-scrollbar>
+          </el-tab-pane>
+          <el-tab-pane label="JSON" name="json" class="h-full">
+             <el-scrollbar class="h-full bg-gray-50 rounded-lg p-4">
+                <pre class="text-xs leading-relaxed whitespace-pre-wrap break-words">{{ JSON.stringify(completedData.json, null, 2) }}</pre>
+             </el-scrollbar>
+          </el-tab-pane>
+        </el-tabs>
       </div>
-
+      
       <!-- 空状态 -->
-      <div v-else class="flex-1 flex items-center justify-center text-gray-500">
-        <div class="text-center">
-          <div class="text-5xl mb-2">📄</div>
-          <p>上传图片后显示结果</p>
-        </div>
-      </div>
+      <el-empty v-else-if="!loading" description="上传图片后显示结果" />
 
       <!-- 重新开始按钮 -->
-      <button
+      <el-button
         v-if="completedData"
         @click="resetAll"
-        class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+        type="success"
+        class="mt-4"
       >
         🔄 开始新任务
-      </button>
+      </el-button>
     </div>
   </div>
 </template>
@@ -129,6 +107,8 @@ import { normalizeLatex, hasMathDelimiters } from '@/utils/latex'
 import { renderMathInContainer } from '@/utils/math'
 import type { OCRTask, OCROptions } from '@/types/ocr'
 import { ocrApi } from '@/api/modules/ocr'
+import { UploadFilled, Close } from '@element-plus/icons-vue'
+import type { UploadFile } from 'element-plus'
 
 // 使用全局类型定义，避免重复定义
 
@@ -162,19 +142,9 @@ const formatFileSize = (bytes: number) => {
 }
 
 // 处理文件选择
-const handleFileSelected = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  if (target.files?.[0]) {
-    const file = target.files[0]
-    processFile(file)
-  }
-}
-
-// 处理拖拽
-const handleFileDrop = (event: DragEvent) => {
-  const file = event.dataTransfer?.files?.[0]
-  if (file) {
-    processFile(file)
+const handleFileChange = (uploadFile: UploadFile) => {
+  if (uploadFile.raw) {
+    processFile(uploadFile.raw)
   }
 }
 

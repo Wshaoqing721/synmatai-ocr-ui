@@ -14,20 +14,24 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-screen w-screen overflow-hidden bg-gray-50">
+  <el-container class="h-screen w-screen overflow-hidden bg-gray-50">
     <!-- Sidebar (Fixed Left) -->
-    <Sidebar class="flex-none z-20" />
+    <el-aside width="auto" class="flex-none z-20">
+      <Sidebar />
+    </el-aside>
 
     <!-- Main Content Wrapper -->
-    <div class="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
+    <el-container class="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
       <!-- Header (Top) -->
-      <Header class="flex-none z-10" />
+      <el-header height="auto" class="p-0 flex-none z-10">
+        <Header />
+      </el-header>
 
       <!-- Content Area -->
-      <main 
+      <el-main 
         :class="[
           'flex-1 overflow-y-auto scroll-smooth',
-          route.meta.noPadding ? '' : 'p-4 sm:p-6'
+          route.meta.noPadding ? 'p-0' : 'p-4 sm:p-6'
         ]"
       >
         <router-view v-slot="{ Component }">
@@ -35,9 +39,9 @@ onMounted(() => {
             <component :is="Component" />
           </transition>
         </router-view>
-      </main>
-    </div>
-  </div>
+      </el-main>
+    </el-container>
+  </el-container>
 </template>
 
 <style scoped>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { userApi, type User } from '@/api/modules/user'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 const router = useRouter()
 const users = ref<User[]>([])
@@ -23,12 +24,19 @@ const fetchUsers = async () => {
 }
 
 const handleDelete = async (id: number) => {
-  if (confirm('确定删除此用户？')) {
-    try {
-      await userApi.delete(id)
-      await fetchUsers()
-    } catch (err) {
+  try {
+    await ElMessageBox.confirm('确定删除此用户？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await userApi.delete(id)
+    ElMessage.success('删除成功')
+    await fetchUsers()
+  } catch (err) {
+    if (err !== 'cancel') {
       error.value = '删除失败'
+      ElMessage.error('删除失败')
     }
   }
 }
@@ -43,44 +51,33 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow-md">
-    <div class="p-6 border-b border-gray-200 flex justify-between items-center">
-      <h1 class="text-2xl font-bold text-gray-900">用户管理</h1>
-      <button
-        @click="router.push('/users/add')"
-        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        + 添加用户
-      </button>
-    </div>
+  <el-card class="box-card">
+    <template #header>
+      <div class="flex justify-between items-center">
+        <h1 class="text-xl font-bold">用户管理</h1>
+        <el-button type="primary" @click="router.push('/users/add')">
+          + 添加用户
+        </el-button>
+      </div>
+    </template>
 
-    <div v-if="error" class="p-4 bg-red-100 text-red-700">{{ error }}</div>
-    <div v-if="loading" class="p-6 text-center text-gray-500">加载中...</div>
+    <el-alert v-if="error" :title="error" type="error" show-icon class="mb-4" />
 
-    <div v-else class="overflow-x-auto">
-      <table class="w-full">
-        <thead class="bg-gray-50 border-b border-gray-200">
-          <tr>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">ID</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">名称</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">邮箱</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">创建时间</th>
-            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
-            <td class="px-6 py-4 text-sm text-gray-900">{{ user.id }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ user.name }}</td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ user.email }}</td>
-            <td class="px-6 py-4 text-sm text-gray-500">{{ new Date(user.createdAt).toLocaleDateString() }}</td>
-            <td class="px-6 py-4 text-sm space-x-2">
-              <button @click="handleEdit(user.id)" class="text-blue-600 hover:text-blue-900 font-medium">编辑</button>
-              <button @click="handleDelete(user.id)" class="text-red-600 hover:text-red-900 font-medium">删除</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+    <el-table v-loading="loading" :data="users" style="width: 100%">
+      <el-table-column prop="id" label="ID" width="80" />
+      <el-table-column prop="name" label="名称" />
+      <el-table-column prop="email" label="邮箱" />
+      <el-table-column label="创建时间">
+        <template #default="scope">
+          {{ new Date(scope.row.createdAt).toLocaleDateString() }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="180">
+        <template #default="scope">
+          <el-button size="small" @click="handleEdit(scope.row.id)">编辑</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(scope.row.id)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-card>
 </template>

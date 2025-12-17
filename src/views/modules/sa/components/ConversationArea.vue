@@ -1,95 +1,74 @@
 <template>
   <div class="flex flex-col h-full relative bg-white">
     <!-- Messages Area -->
-    <div class="flex-1 overflow-y-auto custom-scrollbar">
+    <el-scrollbar class="flex-1" wrap-class="overflow-x-hidden">
       <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <!-- Welcome State -->
-        <div v-if="conversationStore.currentMessages.length === 0" class="text-center py-20">
-          <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
-            🤖
-          </div>
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">How can I help you today?</h2>
+        <el-empty v-if="conversationStore.currentMessages.length === 0" description="How can I help you today?">
+          <template #image>
+             <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+               🤖
+             </div>
+          </template>
           <p class="text-gray-500">Ask me anything about your documents or tasks.</p>
-        </div>
+        </el-empty>
 
         <!-- Message List -->
         <div v-for="msg in conversationStore.currentMessages" :key="msg.id">
           <MessageBubble :message="msg" />
         </div>
         
-        <!-- Loading Indicator (if needed separately, though MessageBubble handles streaming) -->
-        <div v-if="loading && !currentStreamMessage" class="flex justify-center">
-          <span class="loading loading-dots loading-sm text-gray-400"></span>
+        <!-- Loading Indicator -->
+        <div v-if="loading && !currentStreamMessage" class="flex justify-center py-4">
+           <el-icon class="is-loading text-2xl text-gray-400"><Loading /></el-icon>
         </div>
         
         <div ref="messagesEnd" class="h-4" />
       </div>
-    </div>
+    </el-scrollbar>
 
     <!-- Input Area -->
     <div class="flex-none p-4 bg-white border-t border-gray-100">
       <div class="max-w-3xl mx-auto">
-        <div class="relative bg-white border border-gray-200 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
-          <textarea
+        <div class="relative">
+          <el-input
             v-model="inputMessage"
-            @keydown.enter.ctrl="sendMessage"
+            type="textarea"
+            :autosize="{ minRows: 2, maxRows: 6 }"
             placeholder="Message Super Agent..."
-            class="w-full p-4 pr-12 bg-transparent border-none focus:ring-0 resize-none max-h-48 min-h-[56px] text-gray-800 placeholder-gray-400"
-            rows="1"
-            style="field-sizing: content;" 
+            @keydown.enter.ctrl="sendMessage"
             :disabled="loading"
+            resize="none"
+            class="w-full"
           />
           
           <!-- Send Button -->
-          <button
+          <el-button
+            type="primary"
+            circle
             @click="sendMessage"
             :disabled="loading || !inputMessage.trim()"
-            class="absolute right-2 bottom-2 p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:bg-gray-200 disabled:text-gray-400 transition-colors"
+            class="absolute right-2 bottom-2 z-10"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-            </svg>
-          </button>
+            <el-icon><Position /></el-icon>
+          </el-button>
         </div>
 
         <!-- Footer Controls -->
         <div class="flex justify-between items-center mt-2 px-1">
           <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
-              <label class="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Model</label>
-              <select 
-                v-model="apiVersion" 
-                class="bg-transparent text-xs font-medium text-gray-600 focus:outline-none cursor-pointer"
-              >
-                <option value="v1">Standard (v1)</option>
-                <option value="v2">Streaming (v2)</option>
-                <option value="v3">Enhanced (v3)</option>
-              </select>
-            </div>
+             <div class="flex items-center gap-2">
+               <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Model</span>
+               <el-select v-model="apiVersion" size="small" class="w-32">
+                 <el-option label="Standard (v1)" value="v1" />
+                 <el-option label="Streaming (v2)" value="v2" />
+                 <el-option label="Enhanced (v3)" value="v3" />
+               </el-select>
+             </div>
           </div>
           <span class="text-xs text-gray-400">{{ inputMessage.length }} / 5000</span>
         </div>
       </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div class="pointer-events-none absolute top-4 right-4 space-y-2 z-50">
-      <transition-group name="toast">
-        <div
-          v-for="n in notifications"
-          :key="n.id"
-          class="pointer-events-auto bg-white border border-gray-100 shadow-lg rounded-lg p-4 flex items-start gap-3 max-w-sm transform transition-all duration-300"
-        >
-          <div 
-            class="flex-none w-2 h-2 mt-1.5 rounded-full"
-            :class="n.type === 'error' ? 'bg-red-500' : 'bg-blue-500'"
-          ></div>
-          <div>
-            <div class="font-medium text-sm text-gray-900">{{ n.title }}</div>
-            <div class="text-gray-500 text-xs mt-1 leading-relaxed">{{ n.message }}</div>
-          </div>
-        </div>
-      </transition-group>
     </div>
   </div>
 </template>
@@ -100,6 +79,8 @@ import { useConversationStore } from '@/stores/conversationStore'
 import { useJobStore } from '@/stores/jobStore'
 import MessageBubble from './MessageBubble.vue'
 import api from '@/api/modules/sa'
+import { ElNotification } from 'element-plus'
+import { Position, Loading } from '@element-plus/icons-vue'
 
 const conversationStore = useConversationStore()
 const jobStore = useJobStore()
@@ -123,16 +104,14 @@ const streamingBuffer = ref('')
 const lastTaskIdRef = ref<string | null>(null)
 const lastConversationIdRef = ref<string | null>(null)
 
-// Toast 通知
-type Notice = { id: string; title: string; message: string; type?: 'info' | 'error' }
-const notifications = ref<Notice[]>([])
+// Toast 通知 (Replaced with ElNotification)
 const addNotice = (title: string, message: string, type: 'info' | 'error' = 'info') => {
-  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  notifications.value.push({ id, title, message, type })
-  // 3s 后自动移除
-  setTimeout(() => {
-    notifications.value = notifications.value.filter(n => n.id !== id)
-  }, 3000)
+  ElNotification({
+    title,
+    message,
+    type,
+    duration: 3000
+  })
 }
 
 // 通用 WebSocket 基础部分（支持 VITE_API_URL_SA 的 host/path 推导）

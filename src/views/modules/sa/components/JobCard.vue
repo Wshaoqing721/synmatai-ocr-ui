@@ -12,26 +12,22 @@
         <h3 class="font-semibold text-sm text-gray-900 line-clamp-1" :title="job.name">{{ job.name }}</h3>
         <p class="text-xs text-gray-500 mt-0.5 font-mono">{{ job.id.slice(0, 8) }}...</p>
       </div>
-      <span 
-        class="text-[10px] font-medium px-2 py-0.5 rounded-full uppercase tracking-wide"
-        :class="statusBadgeClass"
+      <el-tag 
+        size="small" 
+        :type="statusType"
+        effect="light"
+        class="uppercase tracking-wide"
       >
         {{ statusText }}
-      </span>
+      </el-tag>
     </div>
 
     <!-- Progress Bar -->
     <div v-if="job.status === 'running'" class="mb-3 pl-2">
       <div class="flex justify-between text-xs text-gray-500 mb-1">
         <span>Progress</span>
-        <span>{{ job.progress }}%</span>
       </div>
-      <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-        <div
-          class="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
-          :style="{ width: `${job.progress}%` }"
-        />
-      </div>
+      <el-progress :percentage="job.progress" :stroke-width="6" :show-text="true" />
     </div>
 
     <!-- Metadata -->
@@ -52,27 +48,36 @@
 
     <!-- Actions -->
     <div class="flex gap-2 pl-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-      <button
+      <el-button
         v-if="job.status === 'running'"
         @click="cancelJob"
-        class="flex-1 text-xs bg-white border border-red-200 text-red-600 px-2 py-1.5 rounded hover:bg-red-50 transition-colors"
+        type="danger"
+        size="small"
+        plain
+        class="flex-1"
       >
         Cancel
-      </button>
-      <button
+      </el-button>
+      <el-button
         v-if="job.status === 'failed'"
         @click="retryJob"
-        class="flex-1 text-xs bg-white border border-yellow-200 text-yellow-600 px-2 py-1.5 rounded hover:bg-yellow-50 transition-colors"
+        type="warning"
+        size="small"
+        plain
+        class="flex-1"
       >
         Retry
-      </button>
-      <button
+      </el-button>
+      <el-button
         v-if="job.status === 'completed'"
         @click="viewDetails"
-        class="flex-1 text-xs bg-white border border-green-200 text-green-600 px-2 py-1.5 rounded hover:bg-green-50 transition-colors"
+        type="success"
+        size="small"
+        plain
+        class="flex-1"
       >
         Details
-      </button>
+      </el-button>
     </div>
   </div>
 </template>
@@ -104,6 +109,16 @@ const statusText = computed(() => {
   return map[props.job.status] || props.job.status
 })
 
+const statusType = computed(() => {
+  const map: Record<string, string> = {
+    pending: 'info',
+    running: 'primary',
+    completed: 'success',
+    failed: 'danger'
+  }
+  return map[props.job.status] || 'info'
+})
+
 const statusColorClass = computed(() => {
   const map: Record<string, string> = {
     pending: 'bg-gray-300',
@@ -112,16 +127,6 @@ const statusColorClass = computed(() => {
     failed: 'bg-red-500'
   }
   return map[props.job.status] || 'bg-gray-300'
-})
-
-const statusBadgeClass = computed(() => {
-  const map: Record<string, string> = {
-    pending: 'bg-gray-100 text-gray-600',
-    running: 'bg-blue-50 text-blue-600',
-    completed: 'bg-green-50 text-green-600',
-    failed: 'bg-red-50 text-red-600'
-  }
-  return map[props.job.status] || 'bg-gray-100 text-gray-600'
 })
 
 const cancelJob = () => {

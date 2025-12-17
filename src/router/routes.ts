@@ -54,6 +54,41 @@ export const routes: RouteRecordRaw[] = [
           noPadding: true
         }
       },
+      {
+        path: 'plm',
+        name: 'PLM',
+        meta: {
+          title: 'PLM 管理',
+          icon: 'plm',
+          requiresAuth: true
+        },
+        children: [
+          {
+            path: 'sync-logs',
+            name: 'SyncLogs',
+            component: () => import('@/views/modules/plm/SyncLogs.vue'),
+            meta: { title: '同步记录' }
+          },
+          {
+            path: 'graph-explorer',
+            name: 'GraphExplorer',
+            component: () => import('@/views/modules/plm/GraphExplorer.vue'),
+            meta: { title: '数据视图' }
+          },
+          {
+            path: 'data-source',
+            name: 'DataSourceManagement',
+            component: () => import('@/views/modules/plm/DataSourceManagement.vue'),
+            meta: { title: '数据源管理' }
+          },
+          {
+            path: 'sync-rules',
+            name: 'SyncRuleManagement',
+            component: () => import('@/views/modules/plm/SyncRuleManagement.vue'),
+            meta: { title: '同步规则' }
+          }
+        ]
+      },
     ]
   },
   {

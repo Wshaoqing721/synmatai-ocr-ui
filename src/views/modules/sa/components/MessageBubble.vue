@@ -4,12 +4,13 @@
     :class="isUser ? 'flex-row-reverse' : 'flex-row'"
   >
     <!-- Avatar -->
-    <div 
-      class="flex-none w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shadow-sm"
-      :class="isUser ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'"
+    <el-avatar 
+      :size="32"
+      :class="isUser ? '!bg-blue-600' : '!bg-green-600'"
+      class="flex-none text-sm font-bold shadow-sm text-white"
     >
       {{ isUser ? 'U' : 'AI' }}
-    </div>
+    </el-avatar>
 
     <!-- Message Content -->
     <div

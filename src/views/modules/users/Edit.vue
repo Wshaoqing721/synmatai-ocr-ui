@@ -43,25 +43,25 @@ onMounted(fetchUser)
 </script>
 
 <template>
-  <div class="bg-white rounded-lg shadow p-6">
-    <h1 class="text-xl font-bold mb-4">编辑用户</h1>
-    <div v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</div>
-    <div v-if="loading">加载中...</div>
-    <div v-else-if="user" class="space-y-4 max-w-md">
-      <div>
-        <label class="block mb-1 text-sm text-gray-600">名称</label>
-        <input v-model="name" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div>
-        <label class="block mb-1 text-sm text-gray-600">邮箱</label>
-        <input v-model="email" type="email" class="w-full border rounded px-3 py-2" />
-      </div>
-      <div class="flex gap-2">
-        <button :disabled="loading" class="px-4 py-2 bg-blue-600 text-white rounded" @click="handleSubmit">
+  <el-card class="box-card">
+    <template #header>
+      <h1 class="text-xl font-bold">编辑用户</h1>
+    </template>
+    <el-alert v-if="error" :title="error" type="error" show-icon class="mb-4" />
+    <div v-if="loading && !user">加载中...</div>
+    <el-form v-else-if="user" label-position="top" class="max-w-md">
+      <el-form-item label="名称">
+        <el-input v-model="name" />
+      </el-form-item>
+      <el-form-item label="邮箱">
+        <el-input v-model="email" type="email" />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :loading="loading" @click="handleSubmit">
           {{ loading ? '提交中...' : '保存' }}
-        </button>
-        <button class="px-4 py-2 bg-gray-200 rounded" @click="router.back()">返回</button>
-      </div>
-    </div>
-  </div>
+        </el-button>
+        <el-button @click="router.back()">返回</el-button>
+      </el-form-item>
+    </el-form>
+  </el-card>
 </template>
