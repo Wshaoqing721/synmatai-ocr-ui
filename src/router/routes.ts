@@ -89,6 +89,59 @@ export const routes: RouteRecordRaw[] = [
           }
         ]
       },
+      {
+        path: 'ontology',
+        name: 'Ontology',
+        meta: {
+          title: '本体管理',
+          icon: 'ontology',
+          requiresAuth: true
+        },
+        children: [
+          {
+            path: 'ontologies',
+            name: 'OntologyStudio',
+            component: () => import('@/views/modules/ontology/OntologyStudio.vue'),
+            meta: { title: '本体列表' }
+          },
+          {
+            path: 'ontologies/:id',
+            name: 'OntologyDetail',
+            component: () => import('@/views/modules/ontology/OntologyDetail.vue'),
+            meta: { title: '本体详情', hideInMenu: true }
+          },
+          {
+            path: 'actions',
+            name: 'ActionList',
+            component: () => import('@/views/modules/ontology/ActionList.vue'),
+            meta: { title: 'Action库' }
+          },
+          {
+            path: 'datasources',
+            name: 'DataSourceList',
+            component: () => import('@/views/modules/ontology/DataSourceList.vue'),
+            meta: { title: '数据源管理' }
+          },
+          {
+            path: 'mappings',
+            name: 'MappingList',
+            component: () => import('@/views/modules/ontology/MappingList.vue'),
+            meta: { title: '数据映射' }
+          },
+          {
+            path: "mapping-workspace",
+            name: "MappingWorkspace",
+            component: () => import("@/views/modules/ontology/MappingWorkspace.vue"),
+            meta: { title: '新建映射', hideInMenu: true }
+          },
+          {
+            path: 'mappings/create',
+            name: 'CreateMapping',
+            component: () => import('@/views/modules/ontology/CreateMapping.vue'),
+            meta: { title: '新建映射', hideInMenu: true }
+          }
+        ]
+      },
     ]
   },
   {
