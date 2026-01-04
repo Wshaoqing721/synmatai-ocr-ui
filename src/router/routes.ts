@@ -142,6 +142,29 @@ export const routes: RouteRecordRaw[] = [
           }
         ]
       },
+      {
+        path: 'kb',
+        name: 'KB',
+        meta: {
+          title: '知识库',
+          icon: 'collection', // Assuming 'collection' icon exists or will fallback
+          requiresAuth: true
+        },
+        children: [
+          {
+            path: '',
+            name: 'KBIndex',
+            component: () => import('@/views/modules/kb/Index.vue'),
+            meta: { title: '知识库列表' }
+          },
+          {
+            path: ':id',
+            name: 'KBDetail',
+            component: () => import('@/views/modules/kb/Detail.vue'),
+            meta: { title: '知识库详情', hideInMenu: true }
+          }
+        ]
+      },
     ]
   },
   {

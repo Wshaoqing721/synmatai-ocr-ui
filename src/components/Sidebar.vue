@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useMenuStore } from '@/stores/menu'
-import { Document, Cpu, User, Menu as IconMenu, Expand, Fold, DataLine, Share, Connection } from '@element-plus/icons-vue'
+import { Document, Cpu, User, Menu as IconMenu, Expand, Fold, DataLine, Share, Connection, Collection } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -29,7 +29,7 @@ onMounted(() => {
     <!-- Logo / Header Area -->
     <div class="h-14 flex items-center justify-between px-4 border-b border-gray-100 flex-none overflow-hidden">
       <div v-show="!collapsed" class="font-bold text-xl text-blue-600 truncate tracking-tight">
-        SynMaTai
+        Nexus Go!
       </div>
       <el-button
         link
@@ -62,6 +62,7 @@ onMounted(() => {
                 <DataLine v-else-if="item.title.includes('PLM')" />
                 <Share v-else-if="item.title.includes('图谱')" />
                 <Connection v-else-if="item.title.includes('本体')" />
+                <Collection v-else-if="item.title.includes('知识库')" />
                 <IconMenu v-else />
               </el-icon>
               <span>{{ item.title }}</span>
@@ -82,6 +83,7 @@ onMounted(() => {
               <User v-else-if="item.title.includes('User')" />
               <DataLine v-else-if="item.title.includes('PLM')" />
               <Connection v-else-if="item.title.includes('本体')" />
+              <Collection v-else-if="item.title.includes('知识库')" />
               <IconMenu v-else />
             </el-icon>
             <template #title>{{ item.title }}</template>

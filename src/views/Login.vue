@@ -22,7 +22,7 @@ const handleLogin = async () => {
       return
     }
 
-    const resp = await fetch('http://218.17.185.36:20244/post-token/', {
+    const resp = await fetch(`${import.meta.env.VITE_API_URL_SA}/post-token/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
