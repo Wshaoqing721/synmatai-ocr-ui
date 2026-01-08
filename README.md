@@ -12,3 +12,4 @@
 
 注意
 本体与本体可以建立关联，作为graph数据的node基础
+https://qq731gq3cou.feishu.cn/file/Z3WebfT75olK7mxDVEYcdJJCn4d
