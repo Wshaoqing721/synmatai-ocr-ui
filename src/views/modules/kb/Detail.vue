@@ -14,6 +14,9 @@ const kbName = route.query.name as string
 const activeTab = ref('files')
 const loading = ref(false)
 const fileList = ref<KBFile[]>([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 const searchQuery = ref('')
 const searchResults = ref<KBSearchResult[]>([])
 const searchLoading = ref(false)
@@ -23,9 +26,9 @@ const uploading = ref(false)
 const fetchFiles = async () => {
   loading.value = true
   try {
-    const res = await getKBFiles(kbId)
-    // 简单的客户端过滤，如果后端不支持过滤
-    fileList.value = res
+    const res = await getKBFiles(kbId, currentPage.value, pageSize.value)
+    fileList.value = res.items
+    total.value = res.total
   } catch (error) {
     console.error(error)
     ElMessage.error('获取文件列表失败')
@@ -83,6 +86,17 @@ const handleSearch = async () => {
   }
 }
 
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  fetchFiles()
+}
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
+  fetchFiles()
+}
+
 const goBack = () => {
   router.push({ name: 'KBIndex' })
 }
@@ -121,7 +135,7 @@ onMounted(() => {
         <!-- 文件管理 Tab -->
         <el-tab-pane label="文件管理" name="files" class="h-full flex flex-col">
           <div class="flex justify-between items-center mb-4 mt-2">
-            <span class="text-gray-600">共 {{ fileList.length }} 个文件</span>
+            <span class="text-gray-600">共 {{ total }} 个文件</span>
             <el-button type="primary" :icon="UploadFilled" @click="uploadDialogVisible = true">
               上传文件
             </el-button>
@@ -158,6 +172,18 @@ onMounted(() => {
               <el-empty description="暂无文件，请上传" />
             </template>
           </el-table>
+          
+          <div class="flex justify-end mt-4">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="total"
+              layout="total, sizes, prev, pager, next, jumper"
+              @current-change="handlePageChange"
+              @size-change="handleSizeChange"
+            />
+          </div>
         </el-tab-pane>
 
         <!-- 搜索测试 Tab -->

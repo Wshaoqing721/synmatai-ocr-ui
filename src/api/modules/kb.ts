@@ -3,7 +3,8 @@ import type {
   KnowledgeBase, 
   CreateKBParams, 
   KBSearchResponse, 
-  KBFile 
+  KBFile,
+  KBFilesResponse
 } from '@/types/kb'
 
 // 1. 创建知识库
@@ -42,15 +43,14 @@ export function uploadFileToKB(kbId: string, file: File) {
   })
 }
 
-// 6. 获取文件列表
-// 注意：API 文档中 /nexus/kb/files/ 似乎是获取所有文件，或者可能支持过滤？
-// 通常会有 query param 过滤 kb_id，但文档没写。
-// 假设它返回所有文件，或者我们需要在前端过滤，或者文档省略了参数。
-// 暂时按文档写。
-export function getKBFiles(kbId?: string) {
-  // 如果后端支持 query param，可以加上 params: { knowledge_base_id: kbId }
-  return request.get<any, KBFile[]>('/nexus/kb/files/', {
-    params: kbId ? { knowledge_base: kbId } : {}
+// 6. 获取文件列表（支持分页）
+export function getKBFiles(kbId?: string, page: number = 1, pageSize: number = 10) {
+  return request.get<any, KBFilesResponse>('/nexus/kb/files/', {
+    params: {
+      ...(kbId ? { knowledge_base_id: kbId } : {}),
+      page,
+      page_size: pageSize
+    }
   })
 }
 

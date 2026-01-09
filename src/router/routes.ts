@@ -165,6 +165,47 @@ export const routes: RouteRecordRaw[] = [
           }
         ]
       },
+      {
+        path: 'test-platform',
+        name: 'TestPlatform',
+        component: () => import('@/views/modules/test_platform/page.vue'),
+        meta: {
+          title: '自动化测试',
+          icon: 'test',
+          requiresAuth: true,
+          noPadding: true
+        }
+      },
+      {
+        path: 'test-platform/history',
+        name: 'TestPlatformHistory',
+        component: () => import('@/views/modules/test_platform/history/page.vue'),
+        meta: { title: '历史记录', requiresAuth: true, hideInMenu: true }
+      },
+      {
+        path: 'test-platform/settings',
+        name: 'TestPlatformSettings',
+        component: () => import('@/views/modules/test_platform/settings/page.vue'),
+        meta: { title: '设置', requiresAuth: true, hideInMenu: true }
+      },
+      {
+        path: 'test-platform/runs/:runId',
+        name: 'TestPlatformRun',
+        component: () => import('@/views/modules/test_platform/runs/[runId]/page.vue'),
+        meta: { title: '运行详情', requiresAuth: true, hideInMenu: true }
+      },
+      {
+        path: 'test-platform/runs/:runId/result',
+        name: 'TestPlatformRunResult',
+        component: () => import('@/views/modules/test_platform/runs/[runId]/result/page.vue'),
+        meta: { title: '运行报告', requiresAuth: true, hideInMenu: true }
+      },
+      {
+        path: 'test-platform/runs/:runId/users/:userId',
+        name: 'TestPlatformRunUser',
+        component: () => import('@/views/modules/test_platform/runs/[runId]/users/[userId]/page.vue'),
+        meta: { title: '用户详情', requiresAuth: true, hideInMenu: true }
+      },
     ]
   },
   {

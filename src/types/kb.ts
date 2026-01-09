@@ -47,6 +47,14 @@ export interface KBFile {
   created_at?: string
 }
 
+export interface KBFilesResponse {
+  items: KBFile[]
+  total: number
+  page: number
+  page_size: number
+  num_pages: number
+}
+
 export interface UploadFileParams {
   knowledge_base_id: string
   file: File
